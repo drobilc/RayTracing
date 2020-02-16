@@ -12,8 +12,14 @@ java Raytracer
 
 ## Examples
 Examples can be found in the `renders` folder.
-![Cube render](renders/cubes.png)
-![Seahorse render](renders/seahorse.png)
+
+<p align="center">
+  <img width="400" src="renders/cubes.png">
+</p>
+
+<p align="center">
+  <img width="400" src="renders/seahorse.png">
+</p>
 
 ## Tasks
   * [x] Write custom `Vector3` class that is used to represent vectors and is able to do necessary vector operations for ray tracing.
