@@ -3,6 +3,18 @@ I created this raytracer from scratch as a weekend project, because we were doin
 
 The raytracer is written in Java and is able to read an `OBJ` file format (as defined [here](http://paulbourke.net/dataformats/obj/)) and read a `MTL` material file (as defined [here](http://paulbourke.net/dataformats/mtl/)). It only uses the vertex, vertex normal and face definition, as other data is not needed. When exporting `OBJ` file the faces must first be triangulated.
 
+## Usage
+To use, first compile the `Raytracer.java` file, then run it.
+```
+javac Raytracer.java
+java Raytracer
+```
+
+## Examples
+Examples can be found in the `renders` folder.
+![Cube render](renders/cubes.png)
+![Seahorse render](renders/seahorse.png)
+
 ## Tasks
   * [x] Write custom `Vector3` class that is used to represent vectors and is able to do necessary vector operations for ray tracing.
   * [x] Write an `OBJ` and `MTL` file parsers, so we can import 3D models exported from other 3D software.
