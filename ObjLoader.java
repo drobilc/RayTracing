@@ -84,6 +84,7 @@ public class ObjLoader {
                     break;
             }
         }
+        input.close();
 
         Triangle[] facesArray = new Triangle[faces.size()];
         facesArray = faces.toArray(facesArray); 
@@ -127,6 +128,7 @@ public class ObjLoader {
                     break;
             }
         }
+        input.close();
 
         return materials;
     }

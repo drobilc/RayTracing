@@ -35,7 +35,7 @@ public class Triangle extends Object3d {
         Vector3 normal2 = this.v2.normal.multiply(barycentricCoordinates.y);
         Vector3 normal3 = this.v3.normal.multiply(barycentricCoordinates.z);
         return normal1.add(normal2).add(normal3);*/
-        return this.v3.normal.normalize();
+        return this.v1.normal.normalize();
     }
 
     public Vector3 intersection(Ray ray) {

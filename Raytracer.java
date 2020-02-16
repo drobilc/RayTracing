@@ -26,7 +26,7 @@ class Raytracer {
         Camera camera = new Camera(new Vector3(0, 2, -6), new Vector3(0, 0, 1), new Vector3(0, 1, 0));
 
         // Construct a light, use a constructor that sets it at point p
-        Light light = new Light(new Vector3(2, 4, -2));
+        Light light = new Light(new Vector3(0, 4, -4));
 
         render(scene, camera, light, 4, new File("render.png"));
         // render360View(360, scene, light);
@@ -61,10 +61,8 @@ class Raytracer {
     }
 
     public static Vector3 calculateColor(Intersection intersection, Object3d[] scene, Light light, Camera camera) {
-        Vector3 ambientColor = light.ambientColor.multiply(light.ambientIntensity);
-
         if (intersection == null)
-            return ambientColor;
+            return light.ambientColor;
         
         // Send multiple shadow rays from hit point to the light source (assume it is spherical)
         int numberOfShadowRays = 6;
@@ -88,27 +86,25 @@ class Raytracer {
 
         }
         double percentageOfRaysInShadow = (double) numberOfHits / numberOfShadowRays;
-
+        
         Vector3 normal = intersection.object.normal(intersection.point);
         Vector3 lightDirection = light.position.subtract(intersection.point).normalize();
-        Vector3 viewDirection = camera.forward.inverse().normalize();
-
+        Vector3 viewDirection = camera.position.subtract(intersection.point).normalize();
+    
         Vector3 reflection = normal.multiply(2 * (lightDirection.dot(normal))).subtract(lightDirection);
-        
-        // Use Phong lighting model
+
         double diffuse = lightDirection.dot(normal);
         diffuse = Math.max(0, diffuse);
-        double specular = Math.pow(Math.max(reflection.dot(viewDirection), 0), 32);
+        double specular = Math.pow(Math.max(reflection.dot(viewDirection), 0), intersection.object.material.specularExponent);
         specular = Math.max(0, specular);
 
-        Vector3 diffuseColor = light.diffuseColor.multiply(diffuse).multiply(light.diffuseIntensity);
-        Vector3 specularColor = light.specularColor.multiply(specular).multiply(light.specularIntensity);
+        Vector3 ambientColor = intersection.object.material.ambientColor.multiply(light.ambientColor);
+        Vector3 diffuseColor = intersection.object.material.diffuseColor.multiply(light.diffuseColor).multiply(diffuse);
+        Vector3 specularColor = intersection.object.material.specularColor.multiply(light.specularColor).multiply(specular);
         
-        Vector3 lightColor = ambientColor;
-        Vector3 phongColor = diffuseColor.add(specularColor).multiply(1.0 - percentageOfRaysInShadow);
-        lightColor = lightColor.add(phongColor);
+        Vector3 color = ambientColor;
+        color = color.add(diffuseColor.add(specularColor).multiply(1 - percentageOfRaysInShadow));
         
-        Vector3 color = lightColor.multiply(intersection.object.material.color);
         return color.clamp(0, 1);
     }
 
