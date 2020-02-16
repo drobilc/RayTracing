@@ -8,16 +8,16 @@ class Raytracer {
     public static void main(String[] args) throws Exception {
 
         // Parse the OBJ file and convert it to array of Triangles
-        Object3d[] scene = ObjLoader.parseFile(new File("floor_cube.obj"));
+        Object3d[] scene = ObjLoader.parseFile(new File("renders/cubes.obj"));
 
-        // Create a camera at position (0, 0, -5), facing forward
+        // Create a camera at position (0, 2, -6), facing forward
         Vector3 cameraPosition = new Vector3(0, 2, -6);
         Camera camera = new Camera(cameraPosition);
 
         // Construct a light, use a constructor that sets it at point p
         Light[] lights = { new Light(new Vector3(0, 4, -4)) };
 
-        render(scene, camera, lights, 4, new File("render.png"));
+        render(scene, camera, lights, 4, new File("renders/cubes.png"));
         
     }
 

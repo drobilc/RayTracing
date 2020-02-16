@@ -63,9 +63,18 @@ public class ObjLoader {
             switch (data[0]) {
                 case "mtllib":
                     // Read material file from disk and parse it
-                    File materialFile = new File(data[1]);
-                    HashMap<String, Material> newMaterials = parseMaterialFile(materialFile);
-                    materials.putAll(newMaterials);
+                    File parentDirectory = file.getParentFile();
+                    File[] files = parentDirectory.listFiles(new FilenameFilter() {
+                        @Override
+                        public boolean accept(File dir, String name) {
+                            return name.equals(data[1]);
+                        }
+                    });
+                    if (files.length >= 1) {
+                        File materialFile = files[0];
+                        HashMap<String, Material> newMaterials = parseMaterialFile(materialFile);
+                        materials.putAll(newMaterials);
+                    }
                     break;
                 case "usemtl":
                     currentMaterial = materials.get(data[1]);
