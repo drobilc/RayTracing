@@ -20,7 +20,7 @@ public class Camera {
         this.position = position;
         this.forward = forward.normalize();
         this.up = up.normalize();
-        this.right = this.forward.cross(this.up).normalize();
+        this.right = this.up.cross(this.forward).normalize();
     }
 
     public Camera() {

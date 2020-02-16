@@ -125,6 +125,7 @@ public class ObjLoader {
                     currentMaterial.transparency = Double.parseDouble(data[1]);
                     break;
                 case "illum":
+                    currentMaterial.illuminationModel = Integer.parseInt(data[1]);
                     break;
             }
         }

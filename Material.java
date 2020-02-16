@@ -7,6 +7,8 @@ public class Material {
 
     public double transparency = 1;
 
+    public int illuminationModel = 2;
+
     public Vector3 color = new Vector3(20/255.0, 117/255.0, 83/255.0);
 
 }

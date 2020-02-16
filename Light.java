@@ -14,7 +14,7 @@ class Light {
     }
 
     public Light() {
-        this(new Vector3(0, 0, 0), new Vector3(0.1, 0.1, 0.1), new Vector3(0.8, 0.8, 0.8), new Vector3(0.3, 0.3, 0.3));
+        this(new Vector3(0, 0, 0), new Vector3(0.1, 0.1, 0.1), new Vector3(1, 1, 1), new Vector3(0.8, 0.8, 0.8));
     }
 
     public Light(Vector3 position) {

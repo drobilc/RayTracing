@@ -5,35 +5,23 @@ import javax.imageio.ImageIO;
 
 class Raytracer {
 
-    public static void render360View(int divisions, Object3d[] scene, Light light) throws Exception {
-        double deltaAngle = 2 * Math.PI / divisions;
-        for (int i = 0; i < divisions; i++) {
-            double angle = i * deltaAngle;
-            Vector3 cameraPosition = (new Vector3(Math.cos(angle), 0, Math.sin(angle))).multiply(6);
-            Vector3 cameraRotaton = cameraPosition.inverse();
-            Camera camera = new Camera(cameraPosition, cameraRotaton, new Vector3(0, 1, 0));
-            System.out.println("Rendering frame " + i);
-            render(scene, camera, light, 4, new File(String.format("renders/render%03d.png", i)));
-        }
-    }
-
     public static void main(String[] args) throws Exception {
 
         // Parse the OBJ file and convert it to array of Triangles
         Object3d[] scene = ObjLoader.parseFile(new File("floor_cube.obj"));
 
         // Create a camera at position (0, 0, -5), facing forward
-        Camera camera = new Camera(new Vector3(0, 2, -6), new Vector3(0, 0, 1), new Vector3(0, 1, 0));
+        Vector3 cameraPosition = new Vector3(0, 2, -6);
+        Camera camera = new Camera(cameraPosition);
 
         // Construct a light, use a constructor that sets it at point p
-        Light light = new Light(new Vector3(0, 4, -4));
+        Light[] lights = { new Light(new Vector3(0, 4, -4)) };
 
-        render(scene, camera, light, 4, new File("render.png"));
-        // render360View(360, scene, light);
+        render(scene, camera, lights, 4, new File("render.png"));
         
     }
 
-    public static void render(Object3d[] scene, Camera camera, Light light, int subsamples, File file) throws Exception {
+    public static void render(Object3d[] scene, Camera camera, Light[] lights, int subsamples, File file) throws Exception {
         BufferedImage image = new BufferedImage(camera.imageWidth, camera.imageHeight, BufferedImage.TYPE_INT_RGB);
         
         for (int i = 0; i < image.getHeight(); i++) {
@@ -48,7 +36,7 @@ class Raytracer {
                     Intersection intersection = findIntersection(ray, scene);
 
                     // Calculate the color using hit point and set it as pixel value
-                    color = color.add(calculateColor(intersection, scene, light, camera));
+                    color = color.add(calculateColor(intersection, scene, lights, camera, 2));
                 }
 
                 color = color.multiply(1.0 / subsamples);
@@ -60,50 +48,68 @@ class Raytracer {
         ImageIO.write(image, "png", file);
     }
 
-    public static Vector3 calculateColor(Intersection intersection, Object3d[] scene, Light light, Camera camera) {
-        if (intersection == null)
-            return light.ambientColor;
+    public static Vector3 calculateColor(Intersection intersection, Object3d[] scene, Light[] lights, Camera camera, int n) {
+        Vector3 ambientLight = lights[0].ambientColor;
+        if (intersection == null || n <= 0)
+            return ambientLight;
         
-        // Send multiple shadow rays from hit point to the light source (assume it is spherical)
-        int numberOfShadowRays = 6;
-        int numberOfHits = 0;
-        double lightSphereRadius = 0.5;
-        for (int i = 0; i < numberOfShadowRays; i++) {
-            // Generate a shadow ray inside a cone pointing to the light source
-            double phi = Math.random() * 2 * Math.PI;
-            double psi = Math.random() * Math.PI;
-            
-            Vector3 pointOnSphere = new Vector3(
-                Math.sin(psi) * Math.cos(phi) * lightSphereRadius,
-                Math.sin(psi) * Math.sin(phi) * lightSphereRadius,
-                Math.cos(psi) * lightSphereRadius
-            );
-            Vector3 pointOnLightSphere = light.position.add(pointOnSphere);
-            Ray shadowRay = new Ray(intersection.point, pointOnLightSphere.subtract(intersection.point));
-            boolean inShadow = intersects(shadowRay, scene);
-            if (inShadow)
-                numberOfHits += 1;
+        // Define some constants, that can be used in this function
+        Object3d object = intersection.object;
+        Material material = object.material;
 
-        }
-        double percentageOfRaysInShadow = (double) numberOfHits / numberOfShadowRays;
-        
-        Vector3 normal = intersection.object.normal(intersection.point);
-        Vector3 lightDirection = light.position.subtract(intersection.point).normalize();
+        // Calculate the normal and view vector
+        Vector3 normal = object.normal(intersection.point);
         Vector3 viewDirection = camera.position.subtract(intersection.point).normalize();
-    
-        Vector3 reflection = normal.multiply(2 * (lightDirection.dot(normal))).subtract(lightDirection);
-
-        double diffuse = lightDirection.dot(normal);
-        diffuse = Math.max(0, diffuse);
-        double specular = Math.pow(Math.max(reflection.dot(viewDirection), 0), intersection.object.material.specularExponent);
-        specular = Math.max(0, specular);
-
-        Vector3 ambientColor = intersection.object.material.ambientColor.multiply(light.ambientColor);
-        Vector3 diffuseColor = intersection.object.material.diffuseColor.multiply(light.diffuseColor).multiply(diffuse);
-        Vector3 specularColor = intersection.object.material.specularColor.multiply(light.specularColor).multiply(specular);
         
-        Vector3 color = ambientColor;
-        color = color.add(diffuseColor.add(specularColor).multiply(1 - percentageOfRaysInShadow));
+        // At the beginning, the color is simply ambient color
+        Vector3 color = material.ambientColor.multiply(ambientLight);
+
+        Vector3 phongColor = new Vector3();
+        
+        int totalHits = 0;
+        int numberOfShadowRays = 8;
+        double lightSphereRadius = 0.1;
+
+        for (int i = 0; i < lights.length; i++) {
+            Vector3 lightDirection = lights[i].position.subtract(intersection.point).normalize();
+            Vector3 reflection = normal.multiply(2 * lightDirection.dot(normal)).subtract(lightDirection);
+            
+            double diffuse = Math.max(lightDirection.dot(normal), 0);
+            Vector3 diffuseColor = material.diffuseColor.multiply(diffuse).multiply(lights[i].diffuseColor);
+
+            double specular = Math.pow(Math.max(reflection.dot(viewDirection), 0), material.specularExponent);
+            Vector3 specularColor = material.specularColor.multiply(specular).multiply(lights[i].specularColor);
+        
+            // Send multiple shadow rays from hit point to the light source (assume it is spherical)
+            for (int j = 0; j < numberOfShadowRays; j++) {
+                double phi = Math.random() * 2 * Math.PI;
+                double psi = Math.random() * Math.PI;
+
+                Vector3 pointOnSphere = new Vector3(
+                    Math.sin(psi) * Math.cos(phi) * lightSphereRadius,
+                    Math.sin(psi) * Math.sin(phi) * lightSphereRadius,
+                    Math.cos(psi) * lightSphereRadius
+                );
+                Vector3 pointOnLightSphere = lights[i].position.add(pointOnSphere);
+                Ray shadowRay = new Ray(intersection.point, pointOnLightSphere.subtract(intersection.point));
+                boolean inShadow = intersects(shadowRay, scene);
+                if (inShadow)
+                    totalHits += 1;
+            }
+
+            phongColor = phongColor.add(diffuseColor.add(specularColor));
+        }
+        double shadowFactor = (double) totalHits / (numberOfShadowRays * lights.length);
+        color = color.add(phongColor.multiply(1 - shadowFactor));
+
+        if (material.illuminationModel == 3) {
+            Vector3 d = intersection.ray.direction.normalize();
+            Vector3 rayReflectionDirection = d.subtract(normal.multiply(2 * normal.dot(d)));
+            Ray reflectionRay = new Ray(intersection.point, rayReflectionDirection);
+            Intersection reflectionRayIntersection = findIntersection(reflectionRay, scene);
+            Vector3 reflectionColor = calculateColor(reflectionRayIntersection, scene, lights, camera, n - 1);
+            color = color.add(reflectionColor.multiply(material.specularColor));
+        }
         
         return color.clamp(0, 1);
     }
@@ -138,7 +144,7 @@ class Raytracer {
         if (closestIntersectingObject == null)
             return null;
 
-        return new Intersection(closestIntersectingObject, closestIntersectionPoint);
+        return new Intersection(ray, closestIntersectingObject, closestIntersectionPoint);
     }
 
 }
